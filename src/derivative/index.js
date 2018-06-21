@@ -9,7 +9,7 @@ let grammar = fs.readFileSync('./src/derivative/lambda-parser.grammar').toString
 
 let parser = peg.generate(grammar)
 
-export default function derivativeLambda(namelessFun, env = {}) {
+export default function derivativeLambda(namelessFun) {
   let {varName, ast} = parser.parse(namelessFun.toString())
   // console.log("ast: ", JSON.stringify(ast, null, 2))
   let res = derivativeAST(ast, varName)
@@ -24,6 +24,8 @@ export default function derivativeLambda(namelessFun, env = {}) {
   // console.log("after simplify: ", JSON.stringify(s1, null, 2))
 
   // back to js lambda
-  let toEval = `let {${Object.keys(env).join(', ')}} = env; ${varName} => ${toJS(s1)}`
-  return eval(toEval)
+  return env => {
+    let toEval = `let {${Object.keys(env).join(', ')}} = env; ${varName} => ${toJS(s1)}`
+    return eval(toEval)
+  }
 }

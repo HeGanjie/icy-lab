@@ -1,13 +1,17 @@
-import derivativeLambda from "./derivative"
+import {minimize} from "./optimizer/gradient-descent-optimizer"
+import {genSession} from "./session"
 const {pow} = Math
 
-let y = 1
+
+
+let sess = genSession()
+console.log('x init: ', sess.run('x'))
 
 let fn = x => pow(x - 5, 2)
+let train = minimize(fn, 0.01)
+let feed = {pow}
+for (let i = 0; i <= 1000; i++) {
+  sess.run(train, feed)
+}
 
-console.log('fn: ', fn.toString())
-
-let dx = derivativeLambda(fn, {pow, y})
-
-console.log('d(fn): ', dx.toString())
-console.log('dx at 3 is', dx(3))
+console.log(`min x for ${fn + ''} is:`, sess.run('x'))

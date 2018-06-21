@@ -75,7 +75,11 @@ export default function simplify(ast) {
     }
     if (_.isObject(left) && left.op === '*') {
       if (_.isEqual(left.right, right)) {
-        return {op: '*', left: {op: '+', left: left.left, right: 1}, right}
+        return {
+          op: '*',
+          left: {op: '+', left: left.left, right: 1},
+          right
+        }
       }
     }
   }
@@ -107,14 +111,22 @@ export default function simplify(ast) {
       // same last
       if (_.isEqual(left.right, right)) {
         let toMul = simplify(right)
-        return {op, left: simplify(left.left), right: {op, left: toMul, right: toMul}}
+        return {
+          op,
+          left: simplify(left.left),
+          right: {op, left: toMul, right: toMul}
+        }
       }
     }
     if (_.isObject(right) && right.op === '*') {
       // same last
       if (_.isEqual(left, right.right) && !_.isEqual(left, right.left)) {
         let toMul = simplify(left)
-        return {op, left: simplify(right.left), right: {op, left: toMul, right: toMul}}
+        return {
+          op,
+          left: simplify(right.left),
+          right: {op, left: toMul, right: toMul}
+        }
       }
     }
     if (_.isEqual(left, right)) {
