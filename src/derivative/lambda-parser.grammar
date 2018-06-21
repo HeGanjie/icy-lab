@@ -1,0 +1,40 @@
+Derivative
+ 	= "("? _ varName:Variable _ ")"? _ "=>" _  ast:Expression _ {
+         return {varName, ast}
+      }
+
+Expression
+  = head:Term tail:(_ ("+" / "-") _ Term)* {
+  return tail.reduce((acc, curr) => {
+      let op = curr[1], right = curr[3]
+      return {op, left: acc, right}
+  	}, head)
+  }
+
+Term
+  = head:Factor tail:(_ ("*" / "/") _ Factor)* {
+  	return tail.reduce((acc, curr) => {
+      let op = curr[1], right = curr[3]
+      return {op, left: acc, right}
+  	}, head)
+  }
+
+Function
+	= "pow"
+    / "sqrt" // unimplement
+
+Factor
+  = Number
+  / _  Function "(" _ left:Expression _ "," _ right:Expression _ ")" { return {op: "pow", left, right} }
+  / Variable
+  / _"(" _ expr:Expression _ ")" { return expr; }
+
+
+Variable
+  = _[a-z]+ { return text() }
+
+Number "number"
+  = _ ([0-9]+".")?[0-9]+ { return +text() }
+
+_ "whitespace"
+  = [ \t\n\r]* { return "" }
