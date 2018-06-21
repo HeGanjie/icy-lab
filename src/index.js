@@ -3,7 +3,6 @@ const {pow} = Math
 
 let y = 1
 
-// let fn = x => pow(x, 2) + y
 let fn = x => pow(x - 5, 2)
 
 console.log('fn: ', fn.toString())
