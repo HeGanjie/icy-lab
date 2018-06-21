@@ -1,7 +1,7 @@
 import {minimize} from "./optimizer/gradient-descent-optimizer"
 import {genSession} from "./session"
-const {pow} = Math
 
+const {pow} = Math
 
 
 let sess = genSession()
