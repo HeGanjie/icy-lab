@@ -1,18 +1,17 @@
 import _ from 'lodash'
 
-export function genSession(x = 0) {
+export function genSession(variables = {x: 0}) {
   return {
-    run: function (toEval, feed) {
-      if (_.isFunction(toEval)) {
-        let nextx = toEval(x, feed)
-        x = nextx
-        return nextx
+    run: (toRun, feed) => {
+      if (_.isFunction(toRun)) {
+        // predict
+        return toRun(variables, feed)
       }
-      // for reading x ?
-      if (_.isString(toEval)) {
-        return eval(toEval)
+      if (_.isString(toRun)) {
+        // for reading var
+        return variables[toRun]
       }
-      throw new Error('Unimplement')
+      throw new Error('Unimplemented')
     }
   }
 }

@@ -1,34 +1,42 @@
 import _ from "lodash"
 import peg from "pegjs";
 import fs from 'fs'
-import simplify from "./simplify"
+import mostSimplify from "./simplify"
 import derivativeAST from "./derivativeAST"
 import {toJS} from "./to-js"
 
-let grammar = fs.readFileSync('./src/derivative/lambda-parser.grammar').toString('utf8')
+// backprop will need this
+const {pow} = Math
 
-let parser = peg.generate(grammar)
+const grammar = fs.readFileSync('./src/derivative/lambda-parser.grammar').toString('utf8')
 
-export default function derivativeLambda(namelessFun) {
-  let {varName, ast} = parser.parse(namelessFun.toString())
+export const parser = peg.generate(grammar)
+
+export function partialDerivativeLambda(ast, varName) {
   // console.log("ast: ", JSON.stringify(ast, null, 2))
   let res = derivativeAST(ast, varName)
   // console.log("before simplify: ", JSON.stringify(res, null, 2))
-  let s1 = simplify(res)
-  // console.log("simplified: ", JSON.stringify(s1, null, 2))
-  while (!_.isEqual(s1, res)) {
-    res = s1
-    s1 = simplify(s1)
-    // console.log("simplified: ", JSON.stringify(s1, null, 2))
-  }
-  // console.log("after simplify: ", JSON.stringify(s1, null, 2))
 
   // back to js lambda
-  let lambdaStr = `${varName} => ${toJS(s1)}`
-  let envKeysToFnStr = _.memoize(envKeys => envKeys ? `let {${envKeys}} = env; ${lambdaStr}` : lambdaStr)
+  return mostSimplify(res)
+}
+
+export default function derivativeLambda(namelessFun) {
+  let {varNames, ast} = parser.parse(namelessFun.toString())
+
+  let varNameDFunDict = _.zipObject(varNames, varNames.map(varName => {
+    let fnBodyAst = partialDerivativeLambda(ast, varName)
+    return `({${varNames.join(', ')}}) => ${toJS(fnBodyAst)}`
+  }))
+
+  console.log(varNameDFunDict)
+
+  // env => {W: (W, b) => ..., b: (W, b) => ...}
   return env => {
-    let envKeys = Object.keys(env).join(', ')
-    let toEval = envKeysToFnStr(envKeys)
-    return eval(toEval)
+    return _.mapValues(varNameDFunDict, (fnStr) => {
+      let envKeys = Object.keys(env).join(', ')
+      let toEval = envKeys ? `let {${envKeys}} = env; ${fnStr}` : fnStr
+      return eval(toEval)
+    })
   }
 }

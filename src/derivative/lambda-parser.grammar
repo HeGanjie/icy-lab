@@ -1,7 +1,12 @@
 Derivative
- 	= "("? _ varName:Variable _ ")"? _ "=>" _  ast:Expression _ {
-         return {varName, ast}
+ 	=  "("? _  varNames:Params _ ")"? _ "=>" _  ast:Expression _ {
+         return {varNames, ast}
       }
+
+Params
+  = headVar:Variable tailVars: (_ "," _ Variable)* {
+    return [headVar, ...tailVars.map(arr => arr[3])]
+  }
 
 Expression
   = head:Term tail:(_ ("+" / "-") _ Term)* {
@@ -31,10 +36,10 @@ Factor
 
 
 Variable
-  = _[a-z]+ { return text() }
+  = _ [a-zA-Z_] [a-zA-Z0-9]* { return text() }
 
 Number "number"
-  = _ ([0-9]+".")?[0-9]+ { return +text() }
+  = _ "-"? ([0-9]+".")?[0-9]+ { return +text() }
 
 _ "whitespace"
   = [ \t\n\r]* { return "" }

@@ -1,6 +1,9 @@
 import _ from 'lodash'
 import {toJS} from "./to-js"
 
+// calc js will use this
+const {pow} = Math
+
 function calc(ast) {
   return eval(toJS(ast))
 }
@@ -10,9 +13,16 @@ function isCalcable(ast) {
     || (_.isObject(ast) && (ast.op === 'neg' || ast.op === 'inv') && isFinite(ast.left))
 }
 
-// simplify 1 layer
+function isMul(ast) {
+  return _.isObject(ast) && ast.op === '*'
+}
+
+function isAdd(ast) {
+  return _.isObject(ast) && ast.op === '+'
+}
+
 // a - b => a + -b, a * b => a * 1/b
-export default function simplify(ast) {
+function simplify(ast) {
   if (typeof ast !== 'object') {
     return ast
   }
@@ -58,7 +68,7 @@ export default function simplify(ast) {
 
   // sort:
   // adding, mul first: a + bx => bx + a;
-  // bracket last: (a + 5) + b => b + (a + 5);
+  // bracket first: a + (5 + b) => (a + 5) + b
   if (op === '+') {
     if (left === 0) {
       return simplify(right)
@@ -66,14 +76,15 @@ export default function simplify(ast) {
     if (right === 0) {
       return simplify(left)
     }
-    if (_.isObject(right) && right.op === '*' && (!_.isObject(left) || left.op === '+')) {
+    // mul first: a + bx => bx + a
+    if (isMul(right) && (!_.isObject(left) || left.op === '+')) {
       return {op: '+', left: simplify(right), right: simplify(left)}
     }
     // mul more: 2 × x + x => 3 * x
     if (_.isEqual(left, right)) {
       return { op: "*", left: 2, right }
     }
-    if (_.isObject(left) && left.op === '*') {
+    if (isMul(left)) {
       if (_.isEqual(left.right, right)) {
         return {
           op: '*',
@@ -82,9 +93,18 @@ export default function simplify(ast) {
         }
       }
     }
+    // bracket first
+    if (isAdd(right)) {
+      return {
+        op,
+        left: { op, left, right: right.left },
+        right: right.right
+      }
+    }
   }
   // multiplying, const first: (x * 5) * x => 5 * (x * x), x * (5 * x) => 5 * (x * x)
-  // bracket last: (x * x) * x => x * (x * x)
+  // merge to pow: (a * x) * x => a * pow(x, 2)
+  // bracket first: a * (x * y) => (a * x) * y
   if (op === '*') {
     // const first
     if (!isCalcable(left) && isCalcable(right)) {
@@ -99,7 +119,7 @@ export default function simplify(ast) {
       return simplify(right)
     }
     // 2 * (x + 1) => 2*x + 2
-    if (_.isObject(right) && right.op === '+') {
+    if (isAdd(right)) {
       return {
         op: '+',
         left: {op, left, right: right.left},
@@ -107,33 +127,24 @@ export default function simplify(ast) {
       }
     }
 
-    if (_.isObject(left) && left.op === '*') {
-      // same last
-      if (_.isEqual(left.right, right)) {
-        let toMul = simplify(right)
-        return {
-          op,
-          left: simplify(left.left),
-          right: {op, left: toMul, right: toMul}
-        }
-      }
-    }
-    if (_.isObject(right) && right.op === '*') {
-      // same last
-      if (_.isEqual(left, right.right) && !_.isEqual(left, right.left)) {
-        let toMul = simplify(left)
-        return {
-          op,
-          left: simplify(right.left),
-          right: {op, left: toMul, right: toMul}
-        }
+    // merge to pow
+    if (isMul(left) && _.isEqual(left.right, right)) {
+      return {
+        op,
+        left: simplify(left.left),
+        right: {op: "pow", left: simplify(right), right: 2}
       }
     }
     if (_.isEqual(left, right)) {
+      return { op: "pow", left: simplify(left), right: 2 }
+    }
+
+    // bracket first
+    if (isMul(right)) {
       return {
-        op: "pow",
-        left: simplify(left),
-        right: 2
+        op,
+        left: { op, left, right: right.left },
+        right: right.right
       }
     }
   }
@@ -150,3 +161,11 @@ export default function simplify(ast) {
   return {op, left: simplify(left), right: simplify(right)}
 }
 
+export default function mostSimplify(ast) {
+  let s1 = simplify(ast)
+  while (!_.isEqual(s1, ast)) {
+    ast = s1
+    s1 = simplify(s1)
+  }
+  return s1
+}

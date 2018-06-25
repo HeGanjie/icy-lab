@@ -10,7 +10,7 @@ export default function derivativeAST(ast, varName) {
   if (ast === varName) { // x' => 1
     return 1
   }
-  if (!_.isObject(ast) && /^\w+$/.test(varName)) { // y' => 0
+  if (!_.isObject(ast) && /^[a-zA-Z_]\w*$/.test(varName)) { // y' => 0
     return 0
   }
   let {op, left, right} = ast
@@ -22,6 +22,17 @@ export default function derivativeAST(ast, varName) {
       op: "+",
       left: { op: "*", left: derivativeAST(left, varName), right },
       right: { op: "*", left, right: derivativeAST(right, varName) }
+    }
+  }
+  if (op === '/') {
+    return {
+      op,
+      left: {
+        op: '-',
+        left: { op: '*', left: derivativeAST(left, varName), right },
+        right: { op: '*', left, right: derivativeAST(right, varName) }
+      },
+      right: { op: 'pow', left: right, right: 2 }
     }
   }
   if (op === 'pow') { // pow(x - 5, 2)' => 2 * (x - 5)
