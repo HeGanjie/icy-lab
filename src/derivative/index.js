@@ -24,8 +24,11 @@ export default function derivativeLambda(namelessFun) {
   // console.log("after simplify: ", JSON.stringify(s1, null, 2))
 
   // back to js lambda
+  let lambdaStr = `${varName} => ${toJS(s1)}`
+  let envKeysToFnStr = _.memoize(envKeys => envKeys ? `let {${envKeys}} = env; ${lambdaStr}` : lambdaStr)
   return env => {
-    let toEval = `let {${Object.keys(env).join(', ')}} = env; ${varName} => ${toJS(s1)}`
+    let envKeys = Object.keys(env).join(', ')
+    let toEval = envKeysToFnStr(envKeys)
     return eval(toEval)
   }
 }

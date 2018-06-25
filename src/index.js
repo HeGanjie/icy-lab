@@ -10,7 +10,7 @@ console.log('x init: ', sess.run('x'))
 let fn = x => pow(x - 5, 2)
 let train = minimize(fn, 0.01)
 let feed = {pow}
-for (let i = 0; i <= 1000; i++) {
+for (let i = 0; i < 500; i++) {
   sess.run(train, feed)
 }
 
