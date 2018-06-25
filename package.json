@@ -4,7 +4,7 @@
   "description": "machine learning toy program",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx jest"
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +14,9 @@
     "babel-register": "^6.26.0",
     "lodash": "^4.17.10",
     "pegjs": "^0.10.0"
+  },
+  "devDependencies": {
+    "babel-jest": "^23.0.1",
+    "jest": "^23.1.0"
   }
 }
