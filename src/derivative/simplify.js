@@ -13,6 +13,14 @@ function isCalcable(ast) {
     || (_.isObject(ast) && (ast.op === 'neg' || ast.op === 'inv') && isFinite(ast.left))
 }
 
+function is(ast, op) {
+  return _.isObject(ast) && ast.op === op
+}
+
+function isInv(ast) {
+  return _.isObject(ast) && ast.op === 'inv'
+}
+
 function isMul(ast) {
   return _.isObject(ast) && ast.op === '*'
 }
@@ -58,6 +66,19 @@ function simplify(ast) {
     }
     if (_.isObject(left) && left.op === 'inv') {
       return left.left
+    }
+    // 1 / (4 * y) => 1/4 * 1/y
+    if (isMul(left) && isCalcable(left.left)) {
+      return {
+        op: '*',
+        left: {op, left: left.left},
+        right: {op, left: left.right}
+      }
+    }
+    // 1/pow(y, n) => pow(y, -1 * n)
+    if (is(left, 'pow')) {
+      let powExp = left
+      return { ...powExp, right: {op: '*', left: {op: 'neg', left: 1}, right: powExp.right} }
     }
   }
   if (isCalcable(left) && isCalcable(right)) {
@@ -128,6 +149,7 @@ function simplify(ast) {
     }
 
     // merge to pow
+    // (a * x) * x => a * pow(x, 2)
     if (isMul(left) && _.isEqual(left.right, right)) {
       return {
         op,
@@ -135,8 +157,13 @@ function simplify(ast) {
         right: {op: "pow", left: simplify(right), right: 2}
       }
     }
+    // x * x => pow(x, 2)
     if (_.isEqual(left, right)) {
       return { op: "pow", left: simplify(left), right: 2 }
+    }
+    // y * pow(y, n) => pow(y, n + 1)
+    if (is(right, 'pow') && _.isEqual(left, right.left)) {
+      return {op: 'pow', left, right: {op: '+', left: 1, right: right.right}}
     }
 
     // bracket first
@@ -145,6 +172,14 @@ function simplify(ast) {
         op,
         left: { op, left, right: right.left },
         right: right.right
+      }
+    }
+    // (x * y) * pow(y, -2) => x * pow(y, -1)
+    if (isMul(left)) {
+      let assumeRight = {op, left: left.right, right}
+      let trySimR = simplify(assumeRight)
+      if (!_.isEqual(trySimR, assumeRight)) {
+        return {op, left: left.left, right: trySimR}
       }
     }
   }
@@ -156,6 +191,21 @@ function simplify(ast) {
     if (right === 1) {
       return simplify(left)
     }
+    if (right === -1) {
+      return {op: 'inv', left}
+    }
+    // pow(2 * x, 2) => 4 * pow(x, 2)
+    if (isMul(left) && isCalcable(left.left) && isCalcable(right)) {
+      return {
+        op: '*',
+        left: calc({op, left: left.left, right}),
+        right: {op, left: left.right, right}
+      }
+    }
+    // pow(1/y, a) => pow(y, -1 * a)
+    if (isInv(left)) {
+      return {op, left: left.left, right: {op: '*', left: {op: 'neg', left: 1}, right}}
+    }
   }
 
   return {op, left: simplify(left), right: simplify(right)}
@@ -166,6 +216,7 @@ export default function mostSimplify(ast) {
   while (!_.isEqual(s1, ast)) {
     ast = s1
     s1 = simplify(s1)
+    // console.log('sim res: ', toJS(ast))
   }
   return s1
 }

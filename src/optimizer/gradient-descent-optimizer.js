@@ -1,9 +1,14 @@
 import derivativeLambda from "../derivative"
 import _ from 'lodash'
 
-export function minimize(fn, learningRate = 0.1) {
-  // console.log('minimize fn: ', fn.toString())
-  let varNameDxDict = derivativeLambda(fn)
+export function minimize(costFn, learningRate = 0.1) {
+  let varNameDxDict
+  if (_.isFunction(costFn)) {
+    varNameDxDict = derivativeLambda(costFn)
+  } else {
+    let costFnKey = _.findKey(costFn, (v, k) => _.includes(k, 'lost') || _.includes(k, 'cost'))
+    varNameDxDict = derivativeLambda(costFn[costFnKey], _.omit(costFn, costFnKey))
+  }
 
   // return delta dict
   return (varValDict, feed) => {

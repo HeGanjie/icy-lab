@@ -5,6 +5,9 @@ Derivative
       / "(" _ "{" _  varNames:Params _ "}" _ ")" _ "=>" _  ast:Expression _ {
          return {varNames, ast}
       }
+      / varName: Variable _ "=>" _  ast:Expression _ {
+         return {varName, ast}
+      }
 
 Params
   = headVar:Variable tailVars: (_ "," _ Variable)* {
@@ -13,27 +16,32 @@ Params
 
 Expression
   = head:Term tail:(_ ("+" / "-") _ Term)* {
-  return tail.reduce((acc, curr) => {
-      let op = curr[1], right = curr[3]
-      return {op, left: acc, right}
-  	}, head)
+       return tail.reduce((acc, curr) => {
+         let op = curr[1], right = curr[3]
+         return {op, left: acc, right}
+  	   }, head)
+  }
+  / "{" _ params: Params  _ "}" {
+    return {op: "wrap", left: params}
   }
 
 Term
-  = head:Factor tail:(_ ("*" / "/") _ Factor)* {
+  = head:Unary tail:(_ ("*" / "/") _ Unary)* {
   	return tail.reduce((acc, curr) => {
       let op = curr[1], right = curr[3]
       return {op, left: acc, right}
   	}, head)
   }
 
-Function
-	= "pow"
-    / "sqrt" // unimplement
+Unary
+  = neg:"-"? factor: Factor {
+    return neg ? {op: "neg", left: factor } : factor
+  }
 
 Factor
   = Number
-  / _  Function "(" _ left:Expression _ "," _ right:Expression _ ")" { return {op: "pow", left, right} }
+  / _  funcName:Variable "(" _ left:Expression _ "," _ right:Expression _ ")" { return {op: funcName, left, right} }
+  / _  funcName:Variable "(" _ left:Expression _")" { return {op: funcName, left} }
   / Variable
   / _"(" _ expr:Expression _ ")" { return expr; }
 
