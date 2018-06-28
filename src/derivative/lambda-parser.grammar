@@ -1,5 +1,8 @@
 Derivative
- 	=  "("? _  varNames:Params _ ")"? _ "=>" _  ast:Expression _ {
+ 	=  "(" _ "{" _  varNames:Params _ "}"  _  ", " _ "{" _ placeholders:Params _ "}"    _ ")" _ "=>" _  ast:Expression _ {
+         return {varNames, placeholders, ast}
+      }
+      / "(" _ "{" _  varNames:Params _ "}" _ ")" _ "=>" _  ast:Expression _ {
          return {varNames, ast}
       }
 

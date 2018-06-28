@@ -9,11 +9,10 @@ const {pow} = Math
 
 test('min x for (x - 5)^2 is 5', () => {
   let sess = genSession()
-  let fn = x => pow(x - 5, 2)
+  let fn = ({x}) => pow(x - 5, 2)
   let train = minimize(fn, 0.01)
-  let feed = {}
   for (let i = 0; i < 500; i++) {
-    sess.run(train, feed)
+    sess.run(train)
   }
 
   expect(_.round(sess.run('x'), 3)).toBe(5);
@@ -31,16 +30,16 @@ test('stochastic linear regression', () => {
   // let age = 0, bmi = 0, charge = 0
   // matMul: (1, 2) * (2, m) => 1 * m
   // charge: 1 * m
-  let chargePredict = ({w0, w1, b}, {age, bmi}) => w0 * age + w1 * bmi + b
+  let chargesPredict = ({w0, w1, b}, {age, bmi}) => w0 * age + w1 * bmi + b
 
-  let costFn = (w0, w1, b) => pow(w0 * age + w1 * bmi + b - charges, 2) / 2
+  let costFn = ({w0, w1, b}, {age, bmi, charges}) => pow(w0 * age + w1 * bmi + b - charges, 2) / 2
 
   let sess = genSession({w0: 0, w1: 0, b: 0})
   let train = minimize(costFn, 0.03)
 
   let [trainingSet, testSet] = genSets(data, [9, 1])
 
-  let costBeforeTrain = getPredictCost(chargePredict, sess, testSet, testSet.map(d => d.charges))
+  let costBeforeTrain = getPredictCost(chargesPredict, sess, testSet, testSet.map(d => d.charges))
   console.log(`cost before train: `, costBeforeTrain)
 
   for (let epoch = 0; epoch < 1; epoch++) {
@@ -50,7 +49,7 @@ test('stochastic linear regression', () => {
     }
   }
 
-  let costAfterTrain = getPredictCost(chargePredict, sess, testSet, testSet.map(d => d.charges))
+  let costAfterTrain = getPredictCost(chargesPredict, sess, testSet, testSet.map(d => d.charges))
   console.log(`cost after train: `, costAfterTrain)
   expect(costAfterTrain < costBeforeTrain).toBe(true);
 })
